@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     EMBEDDING_PROVIDER: str = "jina"
     EMBEDDING_MODEL: str = "jina-embeddings-v3"
     EMBEDDING_DIMENSIONS: int = 1024
+
+    # Chunker
+    CHUNK_SIZE: int = 512
+    CHUNK_OVERLAP: int = 64
+    TOKENIZER_ENCODING: str = "cl100k_base"
     
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",

@@ -40,8 +40,11 @@ class Chunk(BaseModel):
     index: int
     text: str
     token_count: int
-    start_offset: int
-    end_offset: int
+    token_start: int
+    token_end: int
+
+    char_start: int | None = None
+    char_end: int | None = None
 
     metadata: dict[str, Any] = Field(default_factory=dict)
     model_config = ConfigDict(extra="ignore")
