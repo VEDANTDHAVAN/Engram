@@ -3,6 +3,9 @@ from functools import lru_cache
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parents[2]
 
 class Settings(BaseSettings):
     # ------------------------------------------------------------------
@@ -34,6 +37,7 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = "groq"
     LLM_MODEL: str = "llama-3.3-70b-versatile"
     GROQ_API_KEY: str
+    JINA_API_KEY: str
 
     # Embeddings
 
@@ -42,7 +46,7 @@ class Settings(BaseSettings):
     EMBEDDING_DIMENSIONS: int = 1024
     
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=BASE_DIR / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
