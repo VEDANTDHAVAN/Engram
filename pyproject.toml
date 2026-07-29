@@ -7,6 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     "alembic>=1.18.5",
     "asyncpg>=0.31.0",
+    "beautifulsoup4>=4.15.0",
     "fastapi>=0.140.11",
     "httpx>=0.28.1",
     "openai",
@@ -39,3 +40,8 @@ package = false
 
 [tool.setuptools]
 packages = ["packages"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
