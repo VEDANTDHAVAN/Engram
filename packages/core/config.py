@@ -29,20 +29,18 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------
     redis_url: str | None = None
 
-    # ------------------------------------------------------------------
-    # LLM Providers (Future)
-    # ------------------------------------------------------------------
-    openai_api_key: str | None = None
-    anthropic_api_key: str | None = None
-    gemini_api_key: str | None = None
-    cohere_api_key: str | None = None
+    # LLM
 
-    # ------------------------------------------------------------------
-    # Embedding Providers (Future)
-    # ------------------------------------------------------------------
-    voyage_api_key: str | None = None
-    jina_api_key: str | None = None
+    LLM_PROVIDER: str = "groq"
+    LLM_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_API_KEY: str
 
+    # Embeddings
+
+    EMBEDDING_PROVIDER: str = "jina"
+    EMBEDDING_MODEL: str = "jina-embeddings-v3"
+    EMBEDDING_DIMENSIONS: int = 1024
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
