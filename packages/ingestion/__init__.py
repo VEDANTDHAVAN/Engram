@@ -1,3 +1,6 @@
+from .chunker import DocumentChunker
+from .normalizer import DocumentNormalizer
+from .pipeline import IngestionPipeline
 from .schemas import (
     Chunk,
     IngestionResult,
@@ -10,4 +13,7 @@ __all__ = [
     "NormalizedDocument",
     "Chunk",
     "IngestionResult",
+    "DocumentNormalizer",
+    "DocumentChunker",
+    "IngestionPipeline",
 ]
