@@ -55,3 +55,18 @@ class IngestionResult(BaseModel):
     chunks: list[Chunk]
 
     total_chunks: int 
+
+class ProcessedChunk(BaseModel):
+    """A chunk after embedding and persistence."""
+    chunk_index: int
+    memory_id: UUID
+    vector_id: str
+    token_count: int
+
+class ServiceIngestionResult(BaseModel):
+    """Result returned by the complete ingestion service."""
+    document_id: UUID
+    namespace: str
+    chunks: list[ProcessedChunk] = Field(default_factory=list)
+    total_chunks: int
+    total_embeddings: int
