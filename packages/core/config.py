@@ -45,6 +45,14 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "jina-embeddings-v3"
     EMBEDDING_DIMENSIONS: int = 1024
 
+    # Vector Retrieval
+    
+    VECTOR_PROVIDER: str = "turbovec"
+    TURBOVEC_INDEX_PATH: str = (
+        "data/turbovec/semantic_memory.tvim"
+    )
+    TURBOVEC_BIT_WIDTH: int = 4
+
     # Chunker
     CHUNK_SIZE: int = 512
     CHUNK_OVERLAP: int = 64
