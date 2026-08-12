@@ -14,7 +14,7 @@ class BaseEmbeddingProvider(ABC):
 
     async def embed_batch(
         self, texts: list[str],
-    ) -> list[list[float]]:
+    ) -> list[EmbeddingResponse]:
         """Default batch implementation."""
         return [
             await self.embed(text) for text in texts
