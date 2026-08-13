@@ -63,7 +63,7 @@ class TurboVecProvider(VectorProvider):
                 )
             else:
                 self._index = IdMapIndex(
-                    self.dimension, self.bit_width,
+                    dim=self.dimension, bit_width=self.bit_width,
                 )
 
     def _require_index(self) -> IdMapIndex:
