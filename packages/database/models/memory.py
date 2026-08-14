@@ -28,9 +28,9 @@ class Memory(Base):
         nullable=False,
     )
 
-    embedding: Mapped[list[float]] = mapped_column(
+    embedding: Mapped[list[float] | None] = mapped_column(
         Vector(1024),
-        nullable=False,
+        nullable=True,
     )
 
     state: Mapped[MemoryState] = mapped_column(
