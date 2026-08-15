@@ -1,10 +1,11 @@
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
 from packages.providers.container import ProviderContainer
 from packages.providers.vector import TurboVecProvider
-
+from packages.providers.memory import PostgresMemoryProvider
 
 @pytest.mark.asyncio
 async def test_container_creates_configured_vector_provider(
@@ -124,3 +125,43 @@ async def test_container_uses_injected_provider(
     )
 
     assert container.vector is provider
+
+def test_container_requires_session_for_memory_provider():
+    container = ProviderContainer()
+
+    with pytest.raises(
+        RuntimeError, match="AsyncSession is required",
+    ):
+        container.memory
+
+def test_container_uses_injected_memory_provider():
+    memory_provider = MagicMock()
+
+    container = ProviderContainer(
+        memory_provider=memory_provider,
+    )
+
+    assert container.memory is memory_provider
+
+
+def test_container_creates_postgres_memory_provider():
+    session = MagicMock()
+
+    container = ProviderContainer(
+        session=session,
+    )
+
+    provider = container.memory
+
+    assert isinstance(
+        provider,
+        PostgresMemoryProvider,
+    )
+
+
+def test_container_creates_embedding_provider():
+    container = ProviderContainer()
+
+    provider = container.embedding
+
+    assert provider is not None
