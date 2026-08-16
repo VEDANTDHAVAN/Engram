@@ -1,11 +1,34 @@
 from pathlib import Path
 from unittest.mock import MagicMock
+from uuid import UUID
 
 import pytest
 
 from packages.providers.container import ProviderContainer
 from packages.providers.vector import TurboVecProvider
-from packages.providers.memory import PostgresMemoryProvider
+from packages.providers.memory import PostgresMemoryProvider, MemoryProvider, MemoryRecord
+
+class FakeMemoryProvider(MemoryProvider):
+    async def create(self, *, namespace: str, content: str, metadata: dict | None = None, memory_type: str) -> MemoryRecord:
+        raise NotImplementedError
+
+    async def get(self, memory_id: UUID, *, namespace: str) -> MemoryRecord | None:
+        return None
+
+    async def update(self, memory_id: UUID, *, namespace: str, content: str | None = None, metadata: dict | None = None) -> MemoryRecord:
+        raise NotImplementedError
+
+    async def delete(self, memory_id: UUID, *, namespace: str) -> None:
+        raise NotImplementedError
+
+    async def list_ids(self, *, namespace: str, filters: dict | None = None) -> list[UUID]:
+        return []
+
+def make_container(**kwargs):
+    return ProviderContainer(
+        memory_provider=FakeMemoryProvider(),
+        **kwargs,
+    )
 
 @pytest.mark.asyncio
 async def test_container_creates_configured_vector_provider(
@@ -27,7 +50,7 @@ async def test_container_creates_configured_vector_provider(
         8,
     )
 
-    container = ProviderContainer()
+    container = make_container()
 
     provider = container.vector
 
@@ -46,7 +69,7 @@ async def test_container_initializes_vector_provider(
         index_path=tmp_path / "semantic.tvim",
     )
 
-    container = ProviderContainer(
+    container = make_container(
         vector_provider=provider,
     )
 
@@ -68,7 +91,7 @@ async def test_container_initialization_is_idempotent(
         index_path=tmp_path / "semantic.tvim",
     )
 
-    container = ProviderContainer(
+    container = make_container(
         vector_provider=provider,
     )
 
@@ -93,7 +116,7 @@ async def test_container_can_be_shutdown(
         index_path=tmp_path / "semantic.tvim",
     )
 
-    container = ProviderContainer(
+    container = make_container(
         vector_provider=provider,
     )
 
@@ -120,19 +143,24 @@ async def test_container_uses_injected_provider(
         index_path=tmp_path / "semantic.tvim",
     )
 
-    container = ProviderContainer(
+    container = make_container(
         vector_provider=provider,
     )
 
     assert container.vector is provider
 
 def test_container_requires_session_for_memory_provider():
-    container = ProviderContainer()
+    container = ProviderContainer(
+        memory_provider=None,
+        session=None,
+    )
 
     with pytest.raises(
-        RuntimeError, match="AsyncSession is required",
+        RuntimeError,
+        match="AsyncSession is required",
     ):
-        container.memory
+        _ = container.memory
+
 
 def test_container_uses_injected_memory_provider():
     memory_provider = MagicMock()
@@ -148,6 +176,7 @@ def test_container_creates_postgres_memory_provider():
     session = MagicMock()
 
     container = ProviderContainer(
+        memory_provider=None,
         session=session,
     )
 
@@ -158,9 +187,13 @@ def test_container_creates_postgres_memory_provider():
         PostgresMemoryProvider,
     )
 
+    assert provider.session is session
+
 
 def test_container_creates_embedding_provider():
-    container = ProviderContainer()
+    container = ProviderContainer(
+        memory_provider=FakeMemoryProvider(),
+    )
 
     provider = container.embedding
 

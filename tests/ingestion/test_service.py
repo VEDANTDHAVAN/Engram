@@ -3,12 +3,13 @@ from datetime import datetime, timezone
 
 import pytest
 
+from packages.embeddings.base import BaseEmbeddingProvider
 from packages.embeddings.schemas import EmbeddingResponse
 from packages.ingestion import IngestionPipeline, IngestionService, RawDocument
 from packages.providers.memory import MemoryProvider, MemoryRecord
 from packages.providers.vector import VectorProvider, VectorRecord
 
-class FakeEmbeddingProvider:
+class FakeEmbeddingProvider(BaseEmbeddingProvider):
     async def embed(self, text: str, **kwargs):
         return EmbeddingResponse(
             embedding=[0.1, 0.2, 0.3], dimensions=3,
@@ -60,9 +61,15 @@ class FakeMemoryProvider(MemoryProvider):
     ):
         self.records.pop(memory_id, None)
 
+    async def list_ids(self, *, namespace: str, filters: dict | None = None) -> list[UUID]:
+        return []
+
 class FakeVectorProvider(VectorProvider):
     def __init__(self):
         self.records = {}
+
+    async def initialize(self) -> None:
+        pass
 
     async def upsert(
         self, *, namespace, record_id,

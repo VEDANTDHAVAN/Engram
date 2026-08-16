@@ -32,7 +32,7 @@ class ProviderContainer:
         *,
         vector_provider: VectorProvider | None = None,
         embedding_provider: BaseEmbeddingProvider | None = None,
-        memory_provider: MemoryProvider,
+        memory_provider: MemoryProvider | None = None,
         session: AsyncSession | None = None,
     ) -> None:
         self._vector_provider = vector_provider
@@ -97,22 +97,7 @@ class ProviderContainer:
 
         vector_provider = self.vector
 
-        # TurboVecProvider currently exposes initialize().
-        # Keep this lifecycle boundary here rather than leaking
-        # initialization logic into business services.
-        initialize = getattr(
-            vector_provider,
-            "initialize",
-            None,
-        )
-
-        if initialize is None:
-            raise RuntimeError(
-                "Configured vector provider does not support "
-                "initialization."
-            )
-
-        await initialize()
+        await vector_provider.initialize()
 
         self._initialized = True
 

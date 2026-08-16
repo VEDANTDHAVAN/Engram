@@ -63,6 +63,9 @@ class FakeVectorProvider(
         self.last_top_k: int | None = None
         self.last_filters: dict | None = None
 
+    async def initialize(self) -> None:
+        pass
+    
     async def upsert(
         self,
         *,

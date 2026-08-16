@@ -2,6 +2,9 @@ import pytest
 from packages.providers.vector import VectorProvider
 
 class FakeVectorProvider(VectorProvider):
+    async def initialize(self) -> None:
+        pass
+    
     async def upsert(
         self, *, namespace, record_id,
         embedding, content, metadata=None,
