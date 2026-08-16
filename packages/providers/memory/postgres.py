@@ -157,6 +157,45 @@ class PostgresMemoryProvider(MemoryProvider):
         await self.session.delete(memory)
         await self.session.commit()
 
+    async def list_ids(
+        self, *, namespace: str, 
+        filters: dict | None = None,
+    ) -> list[UUID]:
+        """
+        Return IDs of memories authorized for retrieval.
+
+        PostgreSQL is the canonical source of namespace membership.
+
+        For this milestone, only explicit `allowed_ids` filtering is supported. 
+        Arbitrary metadata predicates are intentionally deferred until CAML has a formal provider-neutral filter model.
+        """
+        memories = await self.repository.by_namespace(namespace)
+
+        if not filters:
+            return [
+                memory.id for memory in memories
+            ]
+
+        allowed_ids = filters.get("allowed_ids")
+
+        if allowed_ids is None:
+            return [
+                memory.id for memory in memories
+            ]
+
+        allowed_uuid_ids: set[UUID] = set()
+
+        for value in allowed_ids:
+            try:
+                allowed_uuid_ids.add(UUID(str(value)))
+            except (ValueError, AttributeError):
+                continue
+
+        return [
+            memory.id for memory in memories
+            if memory.id in allowed_uuid_ids
+        ]
+
     @staticmethod
     def _to_record(
         memory: Memory,

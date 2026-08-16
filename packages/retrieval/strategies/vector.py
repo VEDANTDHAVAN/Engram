@@ -34,7 +34,7 @@ class VectorRetrievalStrategy(RetrievalStrategy):
         *,
         embedding_provider: BaseEmbeddingProvider,
         vector_provider: VectorProvider,
-        memory_provider: MemoryProvider | None = None,
+        memory_provider: MemoryProvider,
     ) -> None:
         self.embedding_provider = embedding_provider
         self.vector_provider = vector_provider
@@ -53,6 +53,15 @@ class VectorRetrievalStrategy(RetrievalStrategy):
             query.query
         )
 
+        authorized_ids = await self.memory_provider.list_ids(
+            namespace=query.namespace, filters=query.filters,
+        )
+
+        vector_filters = dict(query.filters)
+        vector_filters["allowed_ids"] = [
+            str(memory_id) for memory_id in authorized_ids
+        ]
+
         # --------------------------------------------------------------
         # 2. Retrieve dense candidates
         # --------------------------------------------------------------
@@ -60,7 +69,7 @@ class VectorRetrievalStrategy(RetrievalStrategy):
             namespace=query.namespace,
             embedding=embedding_result.embedding,
             top_k=query.top_k,
-            filters=query.filters,
+            filters=vector_filters,
         )
 
         evidence: list[RetrievalEvidence] = []

@@ -33,3 +33,15 @@ class MemoryProvider(ABC):
     @abstractmethod
     async def delete(self, memory_id: UUID, *, namespace: str) -> None:
         raise NotImplementedError
+
+    @abstractmethod
+    async def list_ids(
+        self, *, namespace: str,
+        filters: dict | None = None,
+    ) -> list[UUID]:
+        """
+        Return memory IDs visible within the requested namespace.
+
+        Implementations must enforce namespace isolation at the canonical storage layer.
+        """
+        raise NotImplementedError

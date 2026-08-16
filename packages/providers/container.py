@@ -32,7 +32,7 @@ class ProviderContainer:
         *,
         vector_provider: VectorProvider | None = None,
         embedding_provider: BaseEmbeddingProvider | None = None,
-        memory_provider: MemoryProvider | None = None,
+        memory_provider: MemoryProvider,
         session: AsyncSession | None = None,
     ) -> None:
         self._vector_provider = vector_provider

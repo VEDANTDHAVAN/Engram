@@ -27,22 +27,24 @@ from packages.retrieval.strategies.vector import (
 class FakeEmbeddingProvider(
     BaseEmbeddingProvider
 ):
+    name = "fake"
+    dimensions = 3
+
     def __init__(
         self,
         embedding: list[float] | None = None,
     ) -> None:
-        self._embedding = embedding or [
-            0.1,
-            0.2,
-            0.3,
-        ]
+        self._embedding = (
+            list(embedding) if embedding is not None
+            else [0.1, 0.2, 0.3]
+        )
 
     async def embed(
         self,
         text: str,
     ) -> EmbeddingResponse:
         return EmbeddingResponse(
-            embedding=self._embedding,
+            embedding=list(self._embedding),
             dimensions=len(self._embedding),
             model="fake-model", provider="fake",
         )
@@ -81,7 +83,7 @@ class FakeVectorProvider(
         filters: dict | None = None,
     ) -> list[VectorRecord]:
         self.last_namespace = namespace
-        self.last_embedding = embedding
+        self.last_embedding = list(embedding)
         self.last_top_k = top_k
         self.last_filters = filters
 
@@ -101,11 +103,12 @@ class FakeMemoryProvider(
 ):
     def __init__(
         self,
-        memory: MemoryRecord | None,
+        memories: list[MemoryRecord] | None = None,
     ) -> None:
-        self.memory = memory
+        self.memories = memories or []
         self.requested_id: UUID | None = None
         self.requested_namespace: str | None = None
+        self.last_filters: dict | None = None
 
     async def create(
         self,
@@ -126,16 +129,14 @@ class FakeMemoryProvider(
         self.requested_id = memory_id
         self.requested_namespace = namespace
 
-        if self.memory is None:
-            return None
+        for memory in self.memories:
+            if (
+                memory.id == memory_id
+                and memory.namespace == namespace
+            ):
+                return memory
 
-        if self.memory.id != memory_id:
-            return None
-
-        if self.memory.namespace != namespace:
-            return None
-
-        return self.memory
+        return None
 
     async def update(
         self,
@@ -154,6 +155,32 @@ class FakeMemoryProvider(
         namespace: str,
     ) -> None:
         raise NotImplementedError
+
+    async def list_ids(
+        self, *, namespace: str, filters: dict | None = None,
+    ) -> list[UUID]:
+        self.last_filters = filters
+
+        authorized = [
+            memory.id for memory in self.memories
+            if memory.namespace == namespace
+        ]
+
+        if not filters:
+            return authorized
+
+        allowed_ids = filters.get("allowed_ids")
+        if allowed_ids is None:
+            return authorized
+
+        allowed = {
+            str(value) for value in allowed_ids
+        }
+
+        return [
+            memory_id for memory_id in authorized
+            if str(memory_id) in allowed
+        ]
 
 
 def make_memory(
@@ -179,15 +206,18 @@ def make_memory(
 
 @pytest.mark.asyncio
 async def test_vector_strategy_retrieves_vector_results():
-    """
-    Preserve the original vector-strategy behavior when no
-    MemoryProvider is supplied.
-    """
+    memory_id = uuid4()
+
+    memory = make_memory(
+        memory_id=memory_id,
+        namespace="tenant-a",
+        content="vector content",
+    )
 
     vector_result = VectorRecord(
-        id="memory-1",
+        id=str(memory_id),
         score=0.95,
-        content="vector content",
+        content="stale vector content",
         metadata={
             "source": "turbovec",
         },
@@ -197,9 +227,14 @@ async def test_vector_strategy_retrieves_vector_results():
         [vector_result]
     )
 
+    memory_provider = FakeMemoryProvider(
+        [memory]
+    )
+
     strategy = VectorRetrievalStrategy(
         embedding_provider=FakeEmbeddingProvider(),
         vector_provider=vector_provider,
+        memory_provider=memory_provider,
     )
 
     result = await strategy.retrieve(
@@ -214,21 +249,37 @@ async def test_vector_strategy_retrieves_vector_results():
 
     evidence = result.evidence[0]
 
-    assert evidence.id == "memory-1"
+    assert evidence.id == str(memory_id)
+
+    # Canonical memory wins over vector-index content.
     assert evidence.content == "vector content"
+
     assert evidence.score == 0.95
     assert evidence.source == "vector"
 
-
 @pytest.mark.asyncio
 async def test_vector_strategy_passes_query_parameters():
+    memory_id = uuid4()
+
+    memory = make_memory(
+        memory_id=memory_id,
+        namespace="tenant-a",
+    )
+
     vector_provider = FakeVectorProvider([])
 
+    embedding_provider = FakeEmbeddingProvider(
+        [0.5, 0.6, 0.7]
+    )
+
+    memory_provider = FakeMemoryProvider(
+        [memory]
+    )
+
     strategy = VectorRetrievalStrategy(
-        embedding_provider=FakeEmbeddingProvider(
-            [0.5, 0.6, 0.7]
-        ),
+        embedding_provider=embedding_provider,
         vector_provider=vector_provider,
+        memory_provider=memory_provider,
     )
 
     query = RetrievalQuery(
@@ -254,9 +305,19 @@ async def test_vector_strategy_passes_query_parameters():
 
     assert vector_provider.last_top_k == 7
 
-    assert vector_provider.last_filters == {
-        "memory_type": "semantic",
-    }
+    assert vector_provider.last_filters is not None
+
+    assert (
+        vector_provider.last_filters["memory_type"]
+        == "semantic"
+    )
+
+    # The retrieval strategy must add the canonical
+    # namespace-authorized ID allowlist.
+    assert (
+        vector_provider.last_filters["allowed_ids"]
+        == [str(memory_id)]
+    )
 
 
 @pytest.mark.asyncio
@@ -287,7 +348,7 @@ async def test_vector_strategy_hydrates_canonical_memory():
     )
 
     memory_provider = FakeMemoryProvider(
-        memory
+        [memory]
     )
 
     strategy = VectorRetrievalStrategy(
@@ -439,3 +500,91 @@ async def test_vector_strategy_supports_empty_results():
 
     assert result.latency_ms is not None
     assert result.latency_ms >= 0
+
+@pytest.mark.asyncio
+async def test_vector_strategy_enforces_namespace_isolation():
+    from datetime import datetime, timezone
+
+    memory_a_id = uuid4()
+    memory_b_id = uuid4()
+
+    now = datetime.now(timezone.utc)
+
+    memory_a = MemoryRecord(
+        id=memory_a_id,
+        namespace="tenant-a",
+        content="Tenant A secret",
+        memory_type="semantic",
+        metadata={},
+        created_at=now,
+        updated_at=now,
+    )
+
+    vector_results = [
+        VectorRecord(
+            id=str(memory_a_id),
+            score=0.95,
+            content=None,
+            metadata={},
+        ),
+        VectorRecord(
+            id=str(memory_b_id),
+            score=0.94,
+            content=None,
+            metadata={},
+        ),
+    ]
+
+    vector_provider = FakeVectorProvider(
+        vector_results
+    )
+
+    memory_provider = FakeMemoryProvider(
+        [memory_a]
+    )
+
+    strategy = VectorRetrievalStrategy(
+        embedding_provider=FakeEmbeddingProvider(),
+        vector_provider=vector_provider,
+        memory_provider=memory_provider,
+    )
+
+    result = await strategy.retrieve(
+        RetrievalQuery(
+            query="secret information",
+            namespace="tenant-a",
+            top_k=10,
+        )
+    )
+
+    assert len(result.evidence) == 1
+
+    assert (
+        result.evidence[0].id
+        == str(memory_a_id)
+    )
+
+    assert (
+        result.evidence[0].content
+        == "Tenant A secret"
+    )
+
+    assert (
+        vector_provider.last_filters
+        is not None
+    )
+
+    allowed_ids = (
+        vector_provider.last_filters[
+            "allowed_ids"
+        ]
+    )
+
+    assert allowed_ids == [
+        str(memory_a_id)
+    ]
+
+    assert (
+        str(memory_b_id)
+        not in allowed_ids
+    )
