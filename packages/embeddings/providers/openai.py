@@ -1,5 +1,5 @@
 from packages.embeddings.base import BaseEmbeddingProvider
-
+from packages.embeddings.schemas import EmbeddingResponse
 
 class OpenAIEmbeddingProvider(BaseEmbeddingProvider):
     name = "openai"
@@ -8,7 +8,7 @@ class OpenAIEmbeddingProvider(BaseEmbeddingProvider):
     async def embed(
         self,
         text: str,
-    ) -> list[float]:
+    ) -> EmbeddingResponse:
         raise NotImplementedError(
             "OpenAI provider not implemented yet."
         )

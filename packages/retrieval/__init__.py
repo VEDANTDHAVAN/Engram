@@ -1,6 +1,7 @@
 from .base import RetrievalStrategy
 from .models import RetrievalEvidence, RetrievalQuery, RetrievalResult
 from .strategies import StructuralRetrievalStrategy, TemporalRetrievalStrategy, VectorRetrievalStrategy
+from .strategies.sparse import SparseRetrievalStrategy
 
 __all__ = [
     "RetrievalStrategy",
@@ -10,4 +11,5 @@ __all__ = [
     "VectorRetrievalStrategy",
     "TemporalRetrievalStrategy",
     "StructuralRetrievalStrategy",
+    "SparseRetrievalStrategy",
 ]

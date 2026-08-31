@@ -7,6 +7,7 @@ from packages.embeddings.base import BaseEmbeddingProvider
 from packages.embeddings.schemas import EmbeddingResponse
 from packages.ingestion import IngestionPipeline, IngestionService, RawDocument
 from packages.providers.memory import MemoryProvider, MemoryRecord
+from packages.providers.sparse import SparseProvider, SparseRecord
 from packages.providers.vector import VectorProvider, VectorRecord
 
 class FakeEmbeddingProvider(BaseEmbeddingProvider):
@@ -44,7 +45,7 @@ class FakeMemoryProvider(MemoryProvider):
 
     async def update(
         self, memory_id: UUID, *, namespace: str,
-        content: None, metadata=None,
+        content: str | None = None, metadata=None,
     ):
         record = self.records[memory_id]
 
@@ -91,10 +92,41 @@ class FakeVectorProvider(VectorProvider):
     ):
         self.records.pop(record_id, None)
 
+
+class FakeSparseProvider(SparseProvider):
+    def __init__(self):
+        self.records = {}
+
+    async def initialize(self) -> None:
+        pass
+
+    async def upsert(
+        self, *, namespace, record_id,
+        content, metadata=None,
+    ):
+        self.records[record_id] = SparseRecord(
+            id=record_id,
+            score=1.0,
+            content=content,
+            metadata=metadata or {},
+        )
+
+    async def search(
+        self, *, namespace, query,
+        top_k=10, filters=None,
+    ):
+        return list(self.records.values())[:top_k]
+
+    async def delete(
+        self, *, namespace, record_id,
+    ):
+        self.records.pop(record_id, None)
+
 @pytest.mark.asyncio
 async def test_ingestion_service():
     memory_provider = FakeMemoryProvider()
     vector_provider = FakeVectorProvider()
+    sparse_provider = FakeSparseProvider()
     embedding_provider = FakeEmbeddingProvider()
 
     service = IngestionService(
@@ -102,6 +134,7 @@ async def test_ingestion_service():
         embedding_provider=embedding_provider,
         memory_provider=memory_provider,
         vector_provider=vector_provider,
+        sparse_provider=sparse_provider,
     )
 
     document = RawDocument(
@@ -117,3 +150,4 @@ async def test_ingestion_service():
 
     assert len(memory_provider.records) == 1
     assert len(vector_provider.records) == 1
+    assert len(sparse_provider.records) == 1

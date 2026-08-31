@@ -15,7 +15,7 @@ class BaseLLMProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def stream(
+    def stream(
         self, prompt: str, 
         system_prompt: str | None = None,
         **kwargs,

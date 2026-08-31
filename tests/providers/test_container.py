@@ -1,5 +1,5 @@
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
 
 import pytest
@@ -7,6 +7,7 @@ import pytest
 from packages.providers.container import ProviderContainer
 from packages.providers.vector import TurboVecProvider
 from packages.providers.memory import PostgresMemoryProvider, MemoryProvider, MemoryRecord
+from packages.providers.sparse import BM25Provider, SparseProvider
 
 class FakeMemoryProvider(MemoryProvider):
     async def create(self, *, namespace: str, content: str, metadata: dict | None = None, memory_type: str) -> MemoryRecord:
@@ -198,3 +199,34 @@ def test_container_creates_embedding_provider():
     provider = container.embedding
 
     assert provider is not None
+
+
+def test_container_creates_default_sparse_provider():
+    container = make_container()
+
+    assert isinstance(container.sparse, BM25Provider)
+    assert container.sparse is container.sparse
+
+
+def test_container_uses_injected_sparse_provider():
+    sparse_provider = MagicMock(spec=SparseProvider)
+    container = make_container(sparse_provider=sparse_provider)
+
+    assert container.sparse is sparse_provider
+
+
+@pytest.mark.asyncio
+async def test_container_initializes_sparse_provider():
+    sparse_provider = MagicMock(spec=SparseProvider)
+    sparse_provider.initialize = AsyncMock()
+    vector_provider = MagicMock()
+    vector_provider.initialize = AsyncMock()
+
+    container = make_container(
+        sparse_provider=sparse_provider,
+        vector_provider=vector_provider,
+    )
+
+    await container.initialize()
+
+    sparse_provider.initialize.assert_awaited_once()

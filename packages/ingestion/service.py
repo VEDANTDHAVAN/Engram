@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from packages.embeddings.base import BaseEmbeddingProvider
 from packages.providers.memory import MemoryProvider
+from packages.providers.sparse import SparseProvider
 from packages.providers.vector import VectorProvider
 
 from .pipeline import IngestionPipeline
@@ -18,12 +19,15 @@ class IngestionService:
     def __init__(
         self, *, pipeline: IngestionPipeline,
         embedding_provider: BaseEmbeddingProvider,
-        memory_provider: MemoryProvider, vector_provider: VectorProvider,
+        memory_provider: MemoryProvider,
+        vector_provider: VectorProvider,
+        sparse_provider: SparseProvider | None = None,
     ):
         self.pipeline = pipeline
         self.embedding_provider = embedding_provider
         self.memory_provider = memory_provider
         self.vector_provider = vector_provider
+        self.sparse_provider = sparse_provider
 
     async def ingest(
         self, document: RawDocument,
@@ -60,6 +64,18 @@ class IngestionService:
                     "chunk_index": chunk.index,
                 },
             )
+
+            if self.sparse_provider is not None:
+                await self.sparse_provider.upsert(
+                    namespace=namespace,
+                    record_id=vector_id,
+                    content=chunk.text,
+                    metadata={
+                        "memory_id": str(memory.id),
+                        "source": document.source,
+                        "chunk_index": chunk.index,
+                    },
+                )
 
             processed_chunks.append(
                 ProcessedChunk(

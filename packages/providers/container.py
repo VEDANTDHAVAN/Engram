@@ -10,6 +10,10 @@ from packages.providers.memory import (
     MemoryProvider,
     PostgresMemoryProvider,
 )
+from packages.providers.sparse import (
+    BM25Provider,
+    SparseProvider,
+)
 from packages.providers.vector import (
     VectorFactory,
     VectorProvider,
@@ -33,11 +37,13 @@ class ProviderContainer:
         vector_provider: VectorProvider | None = None,
         embedding_provider: BaseEmbeddingProvider | None = None,
         memory_provider: MemoryProvider | None = None,
+        sparse_provider: SparseProvider | None = None,
         session: AsyncSession | None = None,
     ) -> None:
         self._vector_provider = vector_provider
         self._embedding_provider = embedding_provider
         self._memory_provider = memory_provider
+        self._sparse_provider = sparse_provider
 
         self._session = session
         self._initialized = False
@@ -87,6 +93,14 @@ class ProviderContainer:
 
         return self._memory_provider
 
+    @property
+    def sparse(self) -> SparseProvider:
+        """Resolve the configured sparse retrieval provider."""
+        if self._sparse_provider is None:
+            self._sparse_provider = BM25Provider()
+
+        return self._sparse_provider
+
     async def initialize(self) -> None:
         """
         Initialize infrastructure providers owned by CAML.
@@ -96,8 +110,10 @@ class ProviderContainer:
             return
 
         vector_provider = self.vector
+        sparse_provider = self.sparse
 
         await vector_provider.initialize()
+        await sparse_provider.initialize()
 
         self._initialized = True
 
