@@ -9,7 +9,7 @@ from packages.retrieval.fusion import (
     WeightedCandidateFusion,
 )
 from packages.retrieval.models import RetrievalQuery, RetrievalResult
-
+from packages.retrieval.policy import RetrievalPolicy
 
 class HybridRetrievalService:
     """
@@ -111,6 +111,18 @@ class HybridRetrievalService:
                 fusion,
             ),
             latency_ms=(perf_counter() - start) * 1000,
+        )
+
+    async def retrieve_with_policy(
+        self, query: RetrievalQuery, policy: RetrievalPolicy,
+    ) -> RetrievalResult:
+        effective_query = query.model_copy(
+            update={"top_k": policy.top_k}
+        )
+        return await self.retrieve(
+            effective_query, strategies=[
+                strategy.value for strategy in policy.strategies
+            ], fusion=policy.fusion.value,
         )
 
     def _resolve_strategies(
