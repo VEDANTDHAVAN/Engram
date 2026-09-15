@@ -72,3 +72,27 @@ def can_transition(
     Return whether a context artifact may transition between states.
     """
     return target in _ALLOWED_TRANSITIONS[current]
+
+class ActiveContextEntry(BaseModel):
+    """
+    Lightweight representation of an artifact's presence in the current context.
+
+    The full artifact content remains owned by the ContextArtifactStore.
+    """
+    model_config = ConfigDict(extra="forbid")
+
+    artifact_id: str = Field(min_length=1)
+    namespace: str = Field(min_length=1)
+    token_count: int = Field(ge=0)
+
+    state: ContextArtifactState
+    source: str = Field(min_length=1)
+    metadata: dict[str, object] = Field(default_factory=dict)
+
+    @property
+    def is_visible(self) -> bool:
+        return self.state == ContextArtifactState.ACTIVE
+
+    @property
+    def is_hidden(self) -> bool:
+        return self.state == ContextArtifactState.HIDDEN
