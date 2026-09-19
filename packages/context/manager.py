@@ -3,6 +3,7 @@ from __future__ import annotations
 from packages.context.exceptions import ContextArtifactNotFound
 from packages.context.models import ActiveContextEntry, ContextArtifact, ContextArtifactState
 from packages.context.store import ContextArtifactStore
+from packages.context.in_memory_state import ContextStateStore
 
 class ContextManager:
     """
@@ -11,11 +12,14 @@ class ContextManager:
     ContextManager does not own the canonical artifact content.
     Complete artifacts are persisted through ContextArtifactStore.
     """
-    def __init__(self, store: ContextArtifactStore) -> None:
+    def __init__(
+            self, store: ContextArtifactStore,
+            state_store: ContextStateStore,
+        ) -> None:
         self._store = store
         # Namespace -> ordered artifact IDs.
         # Ordering is intentionally deterministic and represents insertion order  into the current context.
-        self._active_context: dict[str, list[str]] = {}
+        self._state_store = state_store
 
     async def add_artifact(
         self, *, ttl: int | None = None,
@@ -25,29 +29,29 @@ class ContextManager:
         await self._store.store(
             artifact=artifact, ttl=ttl,
         )
-        namespace_entries = self._active_context.setdefault(artifact.namespace, [])
 
-        if artifact.id not in namespace_entries:
-            namespace_entries.append(artifact.id)
+        await self._state_store.add(
+            namespace=artifact.namespace, artifact_id=artifact.id,
+        )
 
         return self._to_entry(artifact)
 
     async def get_active_context(
-        self, *, namespace: str,
+        self, *,
+        namespace: str,
     ) -> list[ActiveContextEntry]:
-        """
-        Return the current context entries for a namespace.
+        artifact_ids = await self._state_store.get_ids(
+            namespace=namespace,
+        )
 
-        Hidden artifacts remain represented as lightweight references.
-        They are not returned with their full content.
-        """
-        artifact_ids = self._active_context.get(namespace, [])
         entries: list[ActiveContextEntry] = []
 
         for artifact_id in artifact_ids:
             artifact = await self._store.get(
-                artifact_id=artifact_id, namespace=namespace,
+                artifact_id=artifact_id,
+                namespace=namespace,
             )
+
             if artifact is None:
                 continue
 
@@ -82,10 +86,10 @@ class ContextManager:
         artifact = await self._store.restore(
             artifact_id=artifact_id, namespace=namespace,
         )
-        namespace_entries = self._active_context.setdefault(namespace, [])
 
-        if artifact.id not in namespace_entries:
-            namespace_entries.append(artifact.id)
+        await self._state_store.add(
+            namespace=namespace, artifact_id=artifact.id,
+        )
 
         return self._to_entry(artifact)
 
@@ -99,18 +103,10 @@ class ContextManager:
         await self._store.delete(
             artifact_id=artifact_id, namespace=namespace,
         )
-        namespace_entries = self._active_context.get(namespace)
 
-        if namespace_entries is None:
-            return
-
-        self._active_context[namespace] = [
-            current_id for current_id in namespace_entries
-            if current_id != artifact_id
-        ]
-
-        if not self._active_context[namespace]:
-            del self._active_context[namespace]
+        await self._state_store.remove(
+            namespace=namespace, artifact_id=artifact_id,
+        )
 
     async def get_artifact(
         self, *, namespace: str, 

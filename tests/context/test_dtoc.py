@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import pytest
 
 from packages.context.cache_store import CacheContextArtifactStore
+from packages.context.in_memory_state import InMemoryContextStateStore
 from packages.context.dtoc import DTOCEngine, DTOCPolicy
 from packages.context.manager import ContextManager
 from packages.context.models import (
@@ -30,7 +31,9 @@ def make_artifact(
 async def make_manager() -> ContextManager:
     cache = FakeCacheProvider()
     store = CacheContextArtifactStore(cache)
-    return ContextManager(store)
+    state_store = InMemoryContextStateStore()
+
+    return ContextManager(store, state_store)
 
 
 @pytest.mark.asyncio

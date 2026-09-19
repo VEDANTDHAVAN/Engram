@@ -40,13 +40,12 @@ class CacheContextArtifactStore(ContextArtifactStore):
         return f"{cls.KEY_PREFIX}:{namespace}:{artifact_id}"
 
     async def store(
-        self,
+        self, *,
         artifact: ContextArtifact,
-        *,
         ttl: int | None = None,
     ) -> None:
         await self._save(
-            artifact,
+            artifact=artifact,
             ttl=ttl,
         )
 

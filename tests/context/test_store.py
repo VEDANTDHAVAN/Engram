@@ -66,7 +66,7 @@ def store():
 async def test_store_and_get(store):
     artifact = make_artifact()
 
-    await store.store(artifact)
+    await store.store(artifact=artifact)
 
     result = await store.get(
         artifact_id=artifact.id,
@@ -83,7 +83,7 @@ async def test_store_and_get(store):
 async def test_hide_preserves_original_content(store):
     artifact = make_artifact()
 
-    await store.store(artifact)
+    await store.store(artifact=artifact)
 
     hidden = await store.hide(
         artifact_id=artifact.id,
@@ -98,7 +98,7 @@ async def test_hide_preserves_original_content(store):
 async def test_restore_returns_artifact_to_active(store):
     artifact = make_artifact()
 
-    await store.store(artifact)
+    await store.store(artifact=artifact)
 
     await store.hide(
         artifact_id=artifact.id,
@@ -117,7 +117,7 @@ async def test_restore_returns_artifact_to_active(store):
 async def test_hide_then_get_remains_recoverable(store):
     artifact = make_artifact()
 
-    await store.store(artifact)
+    await store.store(artifact=artifact)
 
     await store.hide(
         artifact_id=artifact.id,
@@ -137,7 +137,7 @@ async def test_hide_then_get_remains_recoverable(store):
 async def test_delete_removes_artifact(store):
     artifact = make_artifact()
 
-    await store.store(artifact)
+    await store.store(artifact=artifact)
 
     await store.delete(
         artifact_id=artifact.id,
@@ -185,7 +185,7 @@ async def test_namespace_isolation(store):
         namespace="tenant-a",
     )
 
-    await store.store(artifact)
+    await store.store(artifact=artifact)
 
     result = await store.get(
         artifact_id=artifact.id,
@@ -200,7 +200,7 @@ async def test_namespace_isolation_for_exists(store):
         namespace="tenant-a",
     )
 
-    await store.store(artifact)
+    await store.store(artifact=artifact)
 
     assert not await store.exists(
         artifact_id=artifact.id,
@@ -211,7 +211,7 @@ async def test_namespace_isolation_for_exists(store):
 async def test_cannot_restore_active_artifact(store):
     artifact = make_artifact()
 
-    await store.store(artifact)
+    await store.store(artifact=artifact)
 
     with pytest.raises(InvalidContextStateTransition):
         # Restore is only valid after HIDDEN.
@@ -224,7 +224,7 @@ async def test_cannot_restore_active_artifact(store):
 async def test_cannot_hide_deleted_artifact(store):
     artifact = make_artifact()
 
-    await store.store(artifact)
+    await store.store(artifact=artifact)
 
     await store.delete(
         artifact_id=artifact.id,
@@ -241,7 +241,7 @@ async def test_cannot_hide_deleted_artifact(store):
 async def test_delete_hidden_artifact(store):
     artifact = make_artifact()
 
-    await store.store(artifact)
+    await store.store(artifact=artifact)
 
     await store.hide(
         artifact_id=artifact.id,

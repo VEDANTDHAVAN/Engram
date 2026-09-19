@@ -8,6 +8,8 @@ from packages.context.manager import ContextManager
 from packages.context.dtoc import (
     DTOCEngine, DTOCPolicy, DTOCResult,
 )
+from packages.context.in_memory_state import InMemoryContextStateStore
+from packages.context.state import ContextStateStore
 
 __all__ = [
     "ActiveContextEntry", "ContextManager",
@@ -15,4 +17,5 @@ __all__ = [
     "ContextArtifactState", "can_transition",
     "CacheContextArtifactStore", "ContextArtifactStore",
     "DTOCEngine", "DTOCPolicy", "DTOCResult",
+    "InMemoryContextStateStore", "ContextStateStore",
 ]

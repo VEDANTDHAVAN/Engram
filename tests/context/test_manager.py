@@ -10,7 +10,7 @@ from packages.context.models import (
 )
 from packages.context.exceptions import ContextArtifactNotFound
 from tests.context.test_store import FakeCacheProvider
-
+from packages.context.in_memory_state import InMemoryContextStateStore
 
 def make_artifact(
     *,
@@ -34,7 +34,11 @@ def make_artifact(
 async def test_add_artifact_persists_and_adds_to_context() -> None:
     cache = FakeCacheProvider()
     store = CacheContextArtifactStore(cache)
-    manager = ContextManager(store)
+    state_store = InMemoryContextStateStore()
+
+    manager = ContextManager( 
+        store, state_store,
+    )
 
     artifact = make_artifact()
 
@@ -59,7 +63,11 @@ async def test_add_artifact_persists_and_adds_to_context() -> None:
 async def test_active_context_does_not_contain_full_content() -> None:
     cache = FakeCacheProvider()
     store = CacheContextArtifactStore(cache)
-    manager = ContextManager(store)
+    state_store = InMemoryContextStateStore()
+
+    manager = ContextManager(
+        store, state_store,
+    )
 
     artifact = make_artifact(
         content="VERY LARGE TOOL OUTPUT",
@@ -81,7 +89,11 @@ async def test_active_context_does_not_contain_full_content() -> None:
 async def test_hide_preserves_original_artifact() -> None:
     cache = FakeCacheProvider()
     store = CacheContextArtifactStore(cache)
-    manager = ContextManager(store)
+    state_store = InMemoryContextStateStore()
+
+    manager = ContextManager(
+        store, state_store,
+    )
 
     original_content = "complete original tool output"
 
@@ -112,7 +124,11 @@ async def test_hide_preserves_original_artifact() -> None:
 async def test_hidden_artifact_remains_represented_in_context() -> None:
     cache = FakeCacheProvider()
     store = CacheContextArtifactStore(cache)
-    manager = ContextManager(store)
+    state_store = InMemoryContextStateStore()
+
+    manager = ContextManager(
+        store, state_store,
+    )
 
     artifact = make_artifact()
 
@@ -137,7 +153,11 @@ async def test_hidden_artifact_remains_represented_in_context() -> None:
 async def test_restore_returns_original_artifact_reference() -> None:
     cache = FakeCacheProvider()
     store = CacheContextArtifactStore(cache)
-    manager = ContextManager(store)
+    state_store = InMemoryContextStateStore()
+
+    manager = ContextManager(
+        store, state_store,
+    )
 
     original_content = "exact original output"
 
@@ -171,7 +191,11 @@ async def test_restore_returns_original_artifact_reference() -> None:
 async def test_restore_does_not_duplicate_context_entry() -> None:
     cache = FakeCacheProvider()
     store = CacheContextArtifactStore(cache)
-    manager = ContextManager(store)
+    state_store = InMemoryContextStateStore()
+
+    manager = ContextManager(
+        store, state_store,
+    )
 
     artifact = make_artifact()
 
@@ -199,7 +223,11 @@ async def test_restore_does_not_duplicate_context_entry() -> None:
 async def test_namespace_isolation() -> None:
     cache = FakeCacheProvider()
     store = CacheContextArtifactStore(cache)
-    manager = ContextManager(store)
+    state_store = InMemoryContextStateStore()
+
+    manager = ContextManager(
+        store, state_store,
+    )
 
     artifact_a = make_artifact(
         artifact_id="tool_a",
@@ -230,7 +258,11 @@ async def test_namespace_isolation() -> None:
 async def test_remove_deletes_artifact_and_context_entry() -> None:
     cache = FakeCacheProvider()
     store = CacheContextArtifactStore(cache)
-    manager = ContextManager(store)
+    state_store = InMemoryContextStateStore()
+
+    manager = ContextManager(
+        store, state_store,
+    )
 
     artifact = make_artifact()
 
@@ -252,3 +284,21 @@ async def test_remove_deletes_artifact_and_context_entry() -> None:
             artifact_id=artifact.id,
             namespace=artifact.namespace,
         )
+
+@pytest.mark.asyncio
+async def test_context_state_is_owned_by_state_store() -> None:
+    cache = FakeCacheProvider()
+    store = CacheContextArtifactStore(cache)
+    state_store = InMemoryContextStateStore()
+
+    manager = ContextManager(
+        store, state_store,
+    )
+    artifact = make_artifact()
+
+    await manager.add_artifact(artifact=artifact)
+
+    assert await state_store.exists(
+        namespace=artifact.namespace, 
+        artifact_id=artifact.id,
+    )
