@@ -5,7 +5,10 @@ from packages.decisions import (
     DecisionProvider,
     DecisionRequest,
     DecisionResponse,
+    LayaDecisionProvider,
+    RuleBasedDecisionProvider,
 )
+from packages.decisions.exceptions import LayaDecisionError
 from packages.retrieval.models import (
     RetrievalEvidence,
     RetrievalQuery,
@@ -154,6 +157,54 @@ async def test_provider_failure_falls_back_to_rules() -> None:
 
     assert len(result.evidence) == 1
     assert result.evidence[0].id == "vector-1"
+
+class FailingLayaRouter:
+    def decide(
+        self,
+        state: str,
+        *,
+        schema: dict[str, object],
+        return_details: bool,
+        **kwargs: object,
+    ) -> object:
+        raise RuntimeError("laya model unavailable")
+
+
+async def test_laya_failure_falls_back_to_rules() -> None:
+    primary = LayaDecisionProvider(
+        router=FailingLayaRouter(),
+    )
+
+    fallback = RuleBasedDecisionProvider()
+
+    vector = FakeRetrievalStrategy("vector")
+
+    retrieval = HybridRetrievalService(
+        vector_strategy=vector,
+    )
+
+    orchestrator = DecisionOrchestrator(
+        decision_provider=primary,
+        fallback_provider=fallback,
+        retrieval_service=retrieval,
+    )
+
+    response = await orchestrator._make_decision(
+        DecisionRequest(
+            query="Find ValueError in auth.py",
+            namespace="user_001",
+        )
+    )
+
+    assert response.provider == "rules"
+    assert response.metadata["fallback"] is True
+    assert response.metadata["primary_provider"] == "laya"
+
+    fallback_reason = response.metadata["fallback_reason"]
+
+    assert isinstance(fallback_reason, str)
+    assert "laya model unavailable" in fallback_reason
+
 
 async def test_fallback_metadata_is_recorded() -> None:
     primary = FailingDecisionProvider()

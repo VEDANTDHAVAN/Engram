@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from time import perf_counter
 from typing import Any
 
@@ -10,6 +11,7 @@ from packages.retrieval.policy import (
 )
 
 from .base import DecisionProvider
+from .exceptions import LayaDecisionError
 from .models import DecisionRequest, DecisionResponse
 
 
@@ -63,19 +65,26 @@ class LayaDecisionProvider(DecisionProvider):
 
         state = self._build_state(request)
 
-        result = self._router.decide(
-            state,
-            schema=RETRIEVAL_DECISION_SCHEMA,
-            return_details=True,
-            **self._model_kwargs(),
-        )
+        try:
+            result = await asyncio.to_thread(
+                self._router.decide,
+                state,
+                schema=RETRIEVAL_DECISION_SCHEMA,
+                return_details=True,
+                **self._model_kwargs(),
+            )
+
+        except Exception as exc:
+            raise LayaDecisionError(
+                f"Laya decision failed: {exc}"
+            ) from exc
 
         policy = self._build_policy(
             result,
             top_k=request.top_k,
         )
 
-        confidence = self._extract_confidence(result)
+        confidence, confidence_source = self._extract_confidence(result)
 
         latency_ms = (perf_counter() - start) * 1000
 
@@ -83,12 +92,13 @@ class LayaDecisionProvider(DecisionProvider):
             decision=policy,
             confidence=confidence,
             provider=self.name,
-            model=self._model,
+            model=self._extract_model(result),
             latency_ms=latency_ms,
             reasons=self._build_reasons(result),
             metadata={
                 "namespace": request.namespace,
                 "decision_type": "retrieval_strategy",
+                "confidence_source": confidence_source,
             },
         )
 
@@ -120,7 +130,7 @@ class LayaDecisionProvider(DecisionProvider):
             values = result
 
         if values is None:
-            raise ValueError(
+            raise LayaDecisionError(
                 "Laya decision result does not contain structured values."
             )
 
@@ -143,7 +153,7 @@ class LayaDecisionProvider(DecisionProvider):
             ]
 
         else:
-            raise ValueError(
+            raise LayaDecisionError(
                 f"Unsupported Laya retrieval strategy: {strategy!r}"
             )
 
@@ -154,40 +164,83 @@ class LayaDecisionProvider(DecisionProvider):
         )
 
     @staticmethod
-    def _extract_confidence(result: Any) -> float:
+    def _extract_confidence(
+        result: Any,
+    ) -> tuple[float, str]:
+        answer_confidence = getattr(result, "answer_confidence", None)
+
+        if isinstance(answer_confidence, dict):
+            value = answer_confidence.get("strategy")
+
+            if value is not None:
+                return (
+                    max(0.0, min(1.0, float(value))),
+                    "laya_answer_confidence",
+                )
+
         confidence = getattr(result, "confidence", None)
 
         if isinstance(confidence, dict):
-            confidence = confidence.get("strategy")
+            value = confidence.get("strategy")
 
-        if confidence is None and isinstance(result, dict):
-            confidence = result.get("confidence")
+            if value is not None:
+                return (
+                    max(0.0, min(1.0, float(value))),
+                    "laya_confidence",
+                )
 
-        if confidence is None:
-            return 0.0
+        if isinstance(result, dict):
+            value = result.get("confidence")
 
-        return max(
-            0.0,
-            min(1.0, float(confidence)),
-        )
+            if value is not None:
+                return (
+                    max(0.0, min(1.0, float(value))),
+                    "laya_confidence",
+                )
+
+        return 1.0, "unavailable"
+
+    def _extract_model(
+        self,
+        result: Any,
+    ) -> str | None:
+        routing = getattr(result, "routing", None)
+
+        if isinstance(routing, dict):
+            model = routing.get("model")
+
+            if isinstance(model, str) and model:
+                return model
+
+        return self._model
 
     @staticmethod
     def _build_reasons(
         result: Any,
     ) -> list[str]:
-        strategy = None
-
         values = getattr(result, "values", None)
 
-        if values is not None:
-            strategy = values.get("strategy")
+        if values is None and isinstance(result, dict):
+            values = result
 
-        if strategy is None and isinstance(result, dict):
-            strategy = result.get("strategy")
-
-        if strategy is None:
+        if values is None:
             return []
 
-        return [
-            f"Laya selected retrieval strategy: {strategy}.",
-        ]
+        strategy = values.get("strategy")
+
+        if strategy == "vector":
+            return [
+                "Laya selected semantic/vector retrieval.",
+            ]
+
+        if strategy == "sparse":
+            return [
+                "Laya selected lexical/sparse retrieval.",
+            ]
+
+        if strategy == "hybrid":
+            return [
+                "Laya selected hybrid retrieval.",
+            ]
+
+        return []

@@ -7,6 +7,10 @@ from .evaluation import (
     DecisionRoutingEvaluator, RoutingEvaluationCase,
     RoutingEvaluationResult, RoutingEvaluationSummary,
 )
+from .exceptions import (
+    DecisionProviderError,
+    LayaDecisionError,
+)
 
 __all__ = [
     "DecisionProvider", "DecisionRequest", 
@@ -14,4 +18,5 @@ __all__ = [
     "LayaDecisionProvider", "DecisionOrchestrator",
     "DecisionRoutingEvaluator", "RoutingEvaluationCase",
     "RoutingEvaluationResult", "RoutingEvaluationSummary",
+    "DecisionProviderError", "LayaDecisionError",
 ]
