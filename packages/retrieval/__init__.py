@@ -4,6 +4,17 @@ from .strategies import StructuralRetrievalStrategy, TemporalRetrievalStrategy, 
 from .strategies.sparse import SparseRetrievalStrategy
 from .hybrid import HybridRetrievalService
 
+
+def __getattr__(name: str) -> object:
+    if name == "RetrievalOrchestrator":
+        from .orchestrator import RetrievalOrchestrator
+
+        return RetrievalOrchestrator
+
+    raise AttributeError(
+        f"module {__name__!r} has no attribute {name!r}"
+    )
+
 __all__ = [
     "RetrievalStrategy",
     "RetrievalQuery",
@@ -14,4 +25,5 @@ __all__ = [
     "StructuralRetrievalStrategy",
     "SparseRetrievalStrategy",
     "HybridRetrievalService",
+    "RetrievalOrchestrator",
 ]
