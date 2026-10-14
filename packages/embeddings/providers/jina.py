@@ -8,6 +8,9 @@ class JinaEmbeddingProvider(BaseEmbeddingProvider):
 
     def __init__(self):
         self.client = get_jina_client()
+        # BaseEmbeddingProvider declares `dimensions`; consumers such as
+        # TurboVecProvider need it before the first embed() call.
+        self.dimensions = settings.EMBEDDING_DIMENSIONS
 
     async def embed(self, text: str, **kwargs) -> EmbeddingResponse:
         response = await self.client.post(

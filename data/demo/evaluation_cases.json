@@ -1,0 +1,180 @@
+[
+  {
+    "id": "case_01_knowledge",
+    "category": "no_memory_knowledge",
+    "question": "What pagination strategy did TaskFlow adopt for the task listing API?",
+    "expected_terms": [
+      "cursor"
+    ],
+    "expected_answer": "Cursor pagination",
+    "supporting_memory_ids": [
+      "mem_pagination_cursor_current",
+      "mem_pagination_cursor_reason",
+      "mem_pagination_cursor_mandatory"
+    ],
+    "forbidden_terms": [],
+    "requires_memory": true,
+    "tool": null
+  },
+  {
+    "id": "case_02_exact_identifier",
+    "category": "exact_identifier",
+    "question": "What does PAYMENT_ERR_4291 represent?",
+    "expected_terms": [
+      "429",
+      "redis",
+      "rate"
+    ],
+    "expected_answer": "The payment service returns HTTP 429 when the Redis rate-limit threshold is exceeded.",
+    "supporting_memory_ids": [
+      "mem_error_4291",
+      "mem_error_4291_runbook"
+    ],
+    "forbidden_terms": [
+      "4292",
+      "4921",
+      "1021",
+      "retry budget",
+      "upstream validation"
+    ],
+    "requires_memory": true,
+    "tool": null
+  },
+  {
+    "id": "case_03_identifier_trap",
+    "category": "similar_identifier_trap",
+    "question": "What happens with PAYMENT_ERR_4291?",
+    "expected_terms": [
+      "429",
+      "redis"
+    ],
+    "expected_answer": "HTTP 429 when the Redis rate-limit threshold is exceeded.",
+    "supporting_memory_ids": [
+      "mem_error_4291"
+    ],
+    "forbidden_terms": [
+      "4292",
+      "4921",
+      "1021",
+      "retry budget",
+      "upstream validation",
+      "token validation fails"
+    ],
+    "requires_memory": true,
+    "tool": null
+  },
+  {
+    "id": "case_04_semantic",
+    "category": "semantic_retrieval",
+    "question": "Why was cursor pagination introduced?",
+    "expected_terms": [
+      "concurrent",
+      "inconsistent"
+    ],
+    "expected_answer": "Offset pagination produced inconsistent results under concurrent writes.",
+    "supporting_memory_ids": [
+      "mem_pagination_cursor_reason",
+      "mem_pagination_cursor_mandatory"
+    ],
+    "forbidden_terms": [],
+    "requires_memory": true,
+    "tool": null
+  },
+  {
+    "id": "case_05_temporal_current",
+    "category": "temporal_retrieval",
+    "question": "What pagination strategy is currently required for TaskFlow?",
+    "expected_terms": [
+      "cursor"
+    ],
+    "expected_answer": "Cursor pagination",
+    "supporting_memory_ids": [
+      "mem_pagination_cursor_current",
+      "mem_pagination_cursor_mandatory"
+    ],
+    "forbidden_terms": [
+      "offset"
+    ],
+    "requires_memory": true,
+    "tool": null
+  },
+  {
+    "id": "case_06_temporal_historical",
+    "category": "historical_retrieval",
+    "question": "What pagination strategy did TaskFlow originally use?",
+    "expected_terms": [
+      "offset"
+    ],
+    "expected_answer": "Offset pagination",
+    "supporting_memory_ids": [
+      "mem_pagination_offset_historical"
+    ],
+    "forbidden_terms": [
+      "cursor"
+    ],
+    "requires_memory": true,
+    "tool": null
+  },
+  {
+    "id": "case_07_conflict",
+    "category": "conflict_resolution",
+    "question": "Does TaskFlow currently use Redis Pub/Sub or Redis Streams for durable task events?",
+    "expected_terms": [
+      "streams"
+    ],
+    "expected_answer": "Redis Streams (Pub/Sub was superseded).",
+    "supporting_memory_ids": [
+      "mem_conflict_pubsub_current",
+      "mem_incident_pubsub_loss"
+    ],
+    "forbidden_terms": [],
+    "requires_memory": true,
+    "tool": null
+  },
+  {
+    "id": "case_08_hybrid",
+    "category": "hybrid_retrieval",
+    "question": "Why does PAYMENT_ERR_4291 happen when the system is under load?",
+    "expected_terms": [
+      "429",
+      "redis",
+      "rate"
+    ],
+    "expected_answer": "The payment service returns HTTP 429 when the Redis rate-limit threshold is exceeded.",
+    "supporting_memory_ids": [
+      "mem_error_4291",
+      "mem_error_4291_runbook",
+      "mem_gateway_ratelimit"
+    ],
+    "forbidden_terms": [
+      "4292",
+      "4921",
+      "1021"
+    ],
+    "requires_memory": true,
+    "tool": null
+  },
+  {
+    "id": "case_09_large_tool_output",
+    "category": "large_tool_output",
+    "question": "Here is the output of a search_codebase tool call. Summarize the key findings.",
+    "expected_terms": [],
+    "expected_answer": "A summary of the tool output (context-consumption case).",
+    "supporting_memory_ids": [],
+    "forbidden_terms": [],
+    "requires_memory": false,
+    "tool": "search_codebase"
+  },
+  {
+    "id": "case_10_artifact_restoration",
+    "category": "artifact_restoration",
+    "question": "Retrieve the complete original output of artifact tool_search_codebase_001 and report the first three search results.",
+    "expected_terms": [],
+    "expected_answer": "The complete original search_codebase output, restored verbatim.",
+    "supporting_memory_ids": [],
+    "forbidden_terms": [],
+    "requires_memory": false,
+    "tool": null,
+    "requires_artifact": "tool_search_codebase_001"
+  }
+]

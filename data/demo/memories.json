@@ -1,0 +1,272 @@
+[
+  {
+    "id": "mem_architecture_react",
+    "content": "TaskFlow uses React with TypeScript for its frontend. The build is Vite-based and deployed as static assets behind a CDN.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "architecture", "state": "active"}
+  },
+  {
+    "id": "mem_architecture_backend",
+    "content": "TaskFlow uses FastAPI with Python 3.11 for its backend. The API service is stateless and scales horizontally behind a load balancer.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "architecture", "state": "active"}
+  },
+  {
+    "id": "mem_architecture_postgres",
+    "content": "PostgreSQL 16 is TaskFlow's canonical source of truth. All durable task state lives in PostgreSQL.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "database", "state": "active"}
+  },
+  {
+    "id": "mem_architecture_redis_role",
+    "content": "Redis in TaskFlow is only for caching, background job dispatch, and transient state. Redis must never become the canonical database.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "architecture", "state": "active"}
+  },
+  {
+    "id": "mem_architecture_async_streams",
+    "content": "The system uses Redis Streams for asynchronous task processing so that task events survive a broker restart.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "architecture", "state": "active"}
+  },
+  {
+    "id": "mem_conflict_pubsub_old",
+    "content": "Redis Pub/Sub is used for task notifications in TaskFlow.",
+    "memory_type": "episodic",
+    "metadata": {"topic": "architecture", "state": "superseded", "decision": "historical", "valid_from": "2025-03-01T00:00:00Z", "valid_until": "2026-05-01T00:00:00Z", "version": 1}
+  },
+  {
+    "id": "mem_conflict_pubsub_current",
+    "content": "Redis Streams replaced Redis Pub/Sub for durable task event processing. Pub/Sub was dropped because messages published while a consumer was down were lost permanently.",
+    "memory_type": "decision",
+    "metadata": {"topic": "architecture", "state": "active", "decision": "current", "valid_from": "2026-05-01T00:00:00Z", "valid_until": null, "version": 2}
+  },
+  {
+    "id": "mem_pagination_offset_historical",
+    "content": "TaskFlow used offset pagination for the task listing API before the task table grew beyond 100,000 records.",
+    "memory_type": "episodic",
+    "metadata": {"topic": "pagination", "state": "superseded", "decision": "historical", "valid_from": "2026-01-01T00:00:00Z", "valid_until": "2026-04-01T00:00:00Z", "version": 1}
+  },
+  {
+    "id": "mem_pagination_cursor_current",
+    "content": "The task listing API in TaskFlow currently uses cursor pagination. Cursor pagination is mandatory for task listing.",
+    "memory_type": "decision",
+    "metadata": {"topic": "pagination", "state": "active", "decision": "current", "valid_from": "2026-04-01T00:00:00Z", "valid_until": null, "version": 2}
+  },
+  {
+    "id": "mem_pagination_cursor_reason",
+    "content": "Cursor pagination was introduced to avoid inconsistent results under concurrent writes. Offset pagination produced inconsistent results and duplicate rows during concurrent task inserts.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "pagination", "state": "active", "decision": "current"}
+  },
+  {
+    "id": "mem_pagination_cursor_mandatory",
+    "content": "Cursor pagination became mandatory for task listing because offset pagination produced inconsistent results during concurrent writes.",
+    "memory_type": "decision",
+    "metadata": {"topic": "pagination", "state": "active", "decision": "current", "valid_from": "2026-05-01T00:00:00Z", "valid_until": null, "version": 3}
+  },
+  {
+    "id": "mem_pagination_index",
+    "content": "Task list queries must use an indexed sort key compatible with cursor pagination, namely created_at together with id.",
+    "memory_type": "procedural",
+    "metadata": {"topic": "performance", "state": "active"}
+  },
+  {
+    "id": "mem_security_token_policy",
+    "content": "The authentication system uses short-lived access tokens and rotating refresh tokens. Refresh tokens must be stored in HttpOnly cookies.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "authentication", "state": "active"}
+  },
+  {
+    "id": "mem_security_httponly_incident",
+    "content": "A 2026 incident showed that returning refresh tokens in a JSON response body exposes them to JavaScript. Returning refresh tokens in JSON bodies is prohibited.",
+    "memory_type": "episodic",
+    "metadata": {"topic": "security", "state": "active"}
+  },
+  {
+    "id": "mem_security_access_ttl",
+    "content": "Access token time to live in TaskFlow is 15 minutes. Refresh token time to live is 30 days.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "security", "state": "active"}
+  },
+  {
+    "id": "mem_security_argon2",
+    "content": "Passwords are hashed with Argon2id using a per-user salt. Plaintext passwords are never logged.",
+    "memory_type": "procedural",
+    "metadata": {"topic": "security", "state": "active"}
+  },
+  {
+    "id": "mem_gateway_ratelimit",
+    "content": "The API gateway performs request-level rate limiting before requests reach the payment service, limiting each client to 100 requests per minute.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "security", "state": "active"}
+  },
+  {
+    "id": "mem_error_4291",
+    "content": "PAYMENT_ERR_4291: the payment service returns HTTP 429 when the Redis rate-limit threshold is exceeded.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "error_codes", "state": "active", "identifier": "PAYMENT_ERR_4291"}
+  },
+  {
+    "id": "mem_error_4292",
+    "content": "PAYMENT_ERR_4292: the payment retry worker returns HTTP 429 after exceeding the retry budget.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "error_codes", "state": "active", "identifier": "PAYMENT_ERR_4292"}
+  },
+  {
+    "id": "mem_error_4921",
+    "content": "PAYMENT_ERR_4921: the payment gateway returns HTTP 492 during upstream validation.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "error_codes", "state": "active", "identifier": "PAYMENT_ERR_4921"}
+  },
+  {
+    "id": "mem_error_1021",
+    "content": "PAYMENT_ERR_1021: the payment service returns HTTP 1021 when authentication token validation fails.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "error_codes", "state": "active", "identifier": "PAYMENT_ERR_1021"}
+  },
+  {
+    "id": "mem_error_4291_runbook",
+    "content": "Runbook for PAYMENT_ERR_4291: raise the Redis rate-limit threshold or ask the client to back off. This is a rate limit, not an upstream failure.",
+    "memory_type": "procedural",
+    "metadata": {"topic": "error_codes", "state": "active", "identifier": "PAYMENT_ERR_4291"}
+  },
+  {
+    "id": "mem_backend_idempotency",
+    "content": "TaskFlow background jobs are idempotent. A task may be enqueued more than once without producing duplicate side effects.",
+    "memory_type": "procedural",
+    "metadata": {"topic": "backend", "state": "active"}
+  },
+  {
+    "id": "mem_backend_status_history",
+    "content": "Task status changes must create an immutable status-history record. Status history rows are append-only.",
+    "memory_type": "procedural",
+    "metadata": {"topic": "requirements", "state": "active"}
+  },
+  {
+    "id": "mem_frontend_realtime",
+    "content": "WebSocket notifications are used for task assignment and overdue-task updates on the dashboard.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "frontend", "state": "active"}
+  },
+  {
+    "id": "mem_requirements_overdue",
+    "content": "Overdue tasks must appear on the dashboard and trigger a notification to the assigned user.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "requirements", "state": "active"}
+  },
+  {
+    "id": "mem_preference_stacks",
+    "content": "The TaskFlow project owner prefers TypeScript on the frontend and Python with FastAPI on the backend.",
+    "memory_type": "long_term",
+    "metadata": {"topic": "preference", "state": "active"}
+  },
+  {
+    "id": "mem_deployment_containers",
+    "content": "TaskFlow deploys as OCI containers on Kubernetes. The backend runs three replicas behind an internal service.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "deployment", "state": "active"}
+  },
+  {
+    "id": "mem_deployment_migrations",
+    "content": "Database migrations run as a Kubernetes Job before the new backend version rolls out. Migrations must be backward compatible with the previous release.",
+    "memory_type": "procedural",
+    "metadata": {"topic": "deployment", "state": "active"}
+  },
+  {
+    "id": "mem_deployment_rollback",
+    "content": "Rolling back a TaskFlow backend release does not roll back the database. Schema changes must therefore be additive and reversible in a follow-up migration.",
+    "memory_type": "procedural",
+    "metadata": {"topic": "deployment", "state": "active"}
+  },
+  {
+    "id": "mem_perf_index_task",
+    "content": "The task table has a composite index on (created_at, id) and a partial index on (assignee_id) where status is not done.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "performance", "state": "active"}
+  },
+  {
+    "id": "mem_perf_n_plus_one",
+    "content": "An N+1 query in the task list serializer was fixed by eager loading the assignee relationship. List endpoints must not issue one query per row.",
+    "memory_type": "episodic",
+    "metadata": {"topic": "performance", "state": "active"}
+  },
+  {
+    "id": "mem_perf_cache_header",
+    "content": "The task list endpoint returns an ETag header. Clients revalidate with If-None-Match to avoid refetching unchanged task pages.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "performance", "state": "active"}
+  },
+  {
+    "id": "mem_incident_outage_2026_02",
+    "content": "February 2026 incident: the task list endpoint returned 500s for ten minutes because a cursor decoding change was deployed without a backwards-compatible default.",
+    "memory_type": "episodic",
+    "metadata": {"topic": "incident_history", "state": "active", "severity": "sev2"}
+  },
+  {
+    "id": "mem_incident_cache_stampede",
+    "content": "March 2026 incident: a cache stampede on the dashboard summary key saturated Redis. A short random jitter was added to cache TTLs.",
+    "memory_type": "episodic",
+    "metadata": {"topic": "incident_history", "state": "active", "severity": "sev3"}
+  },
+  {
+    "id": "mem_incident_pubsub_loss",
+    "content": "April 2026 incident: task notifications were lost during a Redis failover because Pub/Sub messages are not durable. This led to the decision to adopt Redis Streams.",
+    "memory_type": "episodic",
+    "metadata": {"topic": "incident_history", "state": "active", "severity": "sev2"}
+  },
+  {
+    "id": "mem_api_versioning",
+    "content": "The TaskFlow REST API is versioned by URL path prefix, for example /api/v1/tasks. Breaking changes require a new version prefix.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "api_behavior", "state": "active"}
+  },
+  {
+    "id": "mem_api_idempotency_key",
+    "content": "POST /api/v1/tasks accepts an Idempotency-Key header. Replaying the same key within 24 hours returns the original response instead of creating a duplicate task.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "api_behavior", "state": "active"}
+  },
+  {
+    "id": "mem_api_error_envelope",
+    "content": "TaskFlow API errors use a JSON envelope with code, message, and request_id. Clients match on code, never on message text.",
+    "memory_type": "semantic",
+    "metadata": {"topic": "api_behavior", "state": "active"}
+  },
+  {
+    "id": "mem_decision_row_level_security",
+    "content": "TaskFlow authorizes task reads with row-level security in PostgreSQL scoped to the requesting user's organization.",
+    "memory_type": "decision",
+    "metadata": {"topic": "security", "state": "active", "decision": "current"}
+  },
+  {
+    "id": "mem_decision_jsonb_tags",
+    "content": "Task tags are stored as a JSONB array in PostgreSQL with a GIN index. Tags were moved from a join table to JSONB in 2026 to simplify writes.",
+    "memory_type": "decision",
+    "metadata": {"topic": "database", "state": "active", "decision": "current", "valid_from": "2026-02-01T00:00:00Z", "valid_until": null, "version": 2}
+  },
+  {
+    "id": "mem_decision_jsonb_tags_old",
+    "content": "Task tags were stored in a separate task_tags join table before they were moved to JSONB.",
+    "memory_type": "episodic",
+    "metadata": {"topic": "database", "state": "superseded", "decision": "historical", "valid_from": "2025-06-01T00:00:00Z", "valid_until": "2026-02-01T00:00:00Z", "version": 1}
+  },
+  {
+    "id": "mem_tool_result_pagination_profile",
+    "content": "A profiling run showed deep offset pages on the task list took 2.4 seconds at page 500. Cursor pagination brought the same traversal to 40 milliseconds.",
+    "memory_type": "tool_result",
+    "metadata": {"topic": "performance", "state": "active", "tool": "profile_query"}
+  },
+  {
+    "id": "mem_tool_result_security_scan",
+    "content": "A dependency security scan flagged two moderate CVEs in the image processing library. Both were patched in the 4.2 release.",
+    "memory_type": "tool_result",
+    "metadata": {"topic": "security", "state": "active", "tool": "dependency_scan"}
+  },
+  {
+    "id": "mem_tool_result_load_test",
+    "content": "A load test at 2,000 requests per second showed the API gateway rate limiter saturated first, before the payment service.",
+    "memory_type": "tool_result",
+    "metadata": {"topic": "performance", "state": "active", "tool": "load_test"}
+  }
+]

@@ -10,4 +10,6 @@ def get_groq_client() -> AsyncOpenAI:
     return AsyncOpenAI(
         api_key=settings.GROQ_API_KEY,
         base_url="https://api.groq.com/openai/v1",
+        timeout=30.0,
+        max_retries=1,
     )

@@ -184,12 +184,14 @@ class DemoRuntime:
         *,
         llm_provider: BaseLLMProvider,
         decision_provider: DecisionProvider | None = None,
+        namespace: str = "taskflow-demo",
+        embedding_provider: BaseEmbeddingProvider | None = None,
     ) -> None:
-        self.namespace = "taskflow-demo"
+        self.namespace = namespace
         self.llm_provider = llm_provider
         self.decision_provider = decision_provider or RuleBasedDecisionProvider()
         self.memory = DemoMemoryProvider()
-        self.embedding = DemoHashEmbeddingProvider()
+        self.embedding = embedding_provider or DemoHashEmbeddingProvider()
         self.sparse = BM25Provider()
         self._temporary_directory = tempfile.TemporaryDirectory(prefix="engram-demo-")
         self.vector = TurboVecProvider(
@@ -262,6 +264,8 @@ def create_demo_runtime(
     *,
     llm_provider: BaseLLMProvider | None = None,
     decision_provider: DecisionProvider | None = None,
+    namespace: str = "taskflow-demo",
+    embedding_provider: BaseEmbeddingProvider | None = None,
 ) -> DemoRuntime:
     return DemoRuntime(
         llm_provider=(
@@ -270,4 +274,6 @@ def create_demo_runtime(
             else DemoEchoLLMProvider()
         ),
         decision_provider=decision_provider,
+        namespace=namespace,
+        embedding_provider=embedding_provider,
     )

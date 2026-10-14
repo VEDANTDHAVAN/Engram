@@ -72,7 +72,38 @@ The agent also demonstrates artifact management: large tool outputs
 (e.g. `search_codebase`) are stored as artifacts and only a token-budgeted
 summary is exposed to the LLM; the full output is restorable on demand.
 
-### 4. Interactive CLI
+### 4. Three-way memory architecture comparison
+
+The primary demo compares three architectures under identical conditions
+(same LLM, model, temperature, system prompt, dataset, namespace, embedding
+model, and tool output):
+
+- **No Memory** — query goes straight to the LLM; no retrieval.
+- **Conventional Memory** — dense similarity search → fixed top-K → direct
+  prompt injection.
+- **Engram** — decision → retrieval policy → dense + sparse → RRF fusion →
+  canonical memory → context management → DTOC → lightweight context package.
+
+```bash
+python -m scripts.evaluate_memory_systems   # full benchmark (aggregate + per-case)
+python -m scripts.demo_comparison           # live side-by-side comparison
+python scripts/demo_chat.py                 # interactive three-way CLI
+```
+
+Both benchmark scripts default to the deterministic echo provider (`--llm echo`)
+and run offline; pass `--llm groq` for a live run. The evaluator
+(`MemorySystemEvaluator`) is system-agnostic — it contains no per-system
+branching, so a fourth architecture can be added without touching it.
+
+Metrics are observed only: recall@K, MRR, answer accuracy, **memory-grounded
+accuracy**, **unsupported answer rate**, temporal/conflict accuracy, abstention
+rate, context tokens, latency, DTOC externalization/restoration, and tokens
+saved. Grounded accuracy and unsupported rate exist because a stateless agent
+can guess correctly from parametric knowledge — a correct guess is not evidence
+that memory retrieval worked. Cost reports `token_usage_unavailable` because
+`ChatResponse` carries no usage field.
+
+### 5. Interactive CLI
 
 ```bash
 python -m demo            # top-level entry point
@@ -84,7 +115,7 @@ Prompts: `baseline` or `engram` mode, then ask questions about TaskFlow
 Engram trace: decision provider, retrieval strategies, retrieved memory
 count, context tokens, and artifact status.
 
-### 5. Evaluation
+### 6. Evaluation (legacy two-way)
 
 ```bash
 python -m scripts.demo_evaluation
@@ -102,11 +133,11 @@ Runs the same 7 cases against both modes and reports:
 | Tool output retained | No | Yes |
 | Artifact restoration | No | Yes |
 
-### 6. Tests
+### 7. Tests
 
 ```bash
 python -m pytest tests/demo -q   # demo tests
-python -m pytest -q              # full suite (223 passed)
+python -m pytest -q              # full suite (234 passed)
 ```
 
 ## Development
